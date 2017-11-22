@@ -11,5 +11,6 @@ libraryDependencies ++= Seq(
   "com.github.tomakehurst" % "wiremock" % wiremockVersion,
 
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-  "org.pegdown" % "pegdown" % "1.6.0" % "test"
+  "org.pegdown" % "pegdown" % "1.6.0" % "test",
+  "org.scalaj" %% "scalaj-http" % "2.3.0" % "test"
 )
