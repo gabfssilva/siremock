@@ -1,10 +1,10 @@
 package io.gabfssilva.siremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.{MappingBuilder, WireMock}
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.http.{HttpHeader, HttpHeaders}
-import com.github.tomakehurst.wiremock.matching.{BinaryEqualToPattern, StringValuePattern, UrlPattern}
+import com.github.tomakehurst.wiremock.matching.{AnythingPattern, BinaryEqualToPattern, StringValuePattern, UrlPattern}
 import io.gabfssilva.siremock.HttpMethods._
 
 import scala.language.implicitConversions
@@ -65,7 +65,7 @@ trait SireMock extends Implicits {
   def mockPost(path: UrlPattern,
               headers: Map[String, StringValuePattern] = Map.empty,
               contentType: Option[String] = None,
-              requestBodyMatching: StringValuePattern,
+              requestBodyMatching: StringValuePattern = new AnythingPattern(),
               withResponseBody: String,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
@@ -85,7 +85,7 @@ trait SireMock extends Implicits {
   def mockPut(path: UrlPattern,
                headers: Map[String, StringValuePattern] = Map.empty,
                contentType: Option[String] = None,
-               requestBodyMatching: StringValuePattern,
+               requestBodyMatching: StringValuePattern = new AnythingPattern(),
                withResponseBody: String,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
@@ -105,7 +105,7 @@ trait SireMock extends Implicits {
   def mockPatch(path: UrlPattern,
                headers: Map[String, StringValuePattern] = Map.empty,
                contentType: Option[String] = None,
-               requestBodyMatching: StringValuePattern,
+               requestBodyMatching: StringValuePattern = new AnythingPattern(),
                withResponseBody: String,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
@@ -125,7 +125,7 @@ trait SireMock extends Implicits {
   def mockDelete(path: UrlPattern,
                headers: Map[String, StringValuePattern] = Map.empty,
                contentType: Option[String] = None,
-               requestBodyMatching: StringValuePattern,
+               requestBodyMatching: StringValuePattern = new AnythingPattern(),
                withResponseBody: String,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
@@ -236,7 +236,7 @@ trait SireMock extends Implicits {
                      method: HttpMethod,
                      headers: Map[String, StringValuePattern] = Map.empty,
                      contentType: Option[String] = None,
-                     requestBodyMatching: StringValuePattern,
+                     requestBodyMatching: StringValuePattern = new AnythingPattern(),
                      withResponseBody: String,
                      withResponseStatus: Int = 200,
                      withResponseHeaders: Map[String, List[String]] = Map.empty,
