@@ -1,9 +1,13 @@
-name := "sire-mock"
+name := "siremock"
 organization := "io.gabfssilva"
 version := "0.0.1"
 scalaVersion := "2.12.4"
 
 resolvers += Resolver.jcenterRepo
+
+bintrayOrganization := Some("gabfssilva")
+
+licenses += ("MIT", url("http://opensource.org/licenses/MIT"))
 
 val wiremockVersion = "2.11.0"
 

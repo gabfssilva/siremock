@@ -4,7 +4,7 @@ sealed abstract class HttpMethod(val stringValue: String, val entityRequest: Boo
   override def toString: String = stringValue
 }
 
-object HttpMethods  extends App{
+object HttpMethods {
   object POST extends HttpMethod("POST", true)
   object GET extends HttpMethod("GET")
   object PUT extends HttpMethod("PUT", true)
@@ -28,7 +28,5 @@ object HttpMethods  extends App{
       case "ANY" | "any" => ANY
     }
   }
-
-  println(POST.toString)
 }
 
