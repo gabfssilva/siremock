@@ -13,7 +13,40 @@ resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/maven"
 libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.2" % "test"
 ```
 
+## The obligatory hello world
 
+```scala
+class MockFeatures extends FeatureSpec with Matchers with BeforeAndAfter with SireMock  {
+  override val sireMockConfig: SireMockConfig = SireMockConfig(port = 8181)
+
+  before {
+    startSireMock
+    resetSireMock
+  }
+
+  after {
+    stopSireMock
+  }
+
+  feature("GET") {
+    scenario("basic mocking") {
+      val expectedResponseBody = """{"hello":"world"}"""
+
+      mockGet(
+        path = "/hello",
+        withResponseBody = Some(expectedResponseBody)
+      )
+
+      val response = Http("http://localhost:8181/hello")
+        .method("get")
+        .asString
+
+      response.body shouldBe expectedResponseBody
+      response.code shouldBe 200
+    }
+  }
+}
+```
 
 
 
