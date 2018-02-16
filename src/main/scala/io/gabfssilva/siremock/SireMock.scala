@@ -51,22 +51,17 @@ trait Implicits {
 trait SireMock extends Implicits {
   val sireMockConfig: SireMockConfig
 
-  lazy val wireMockServer: WireMockServer = {
-    val s = new WireMockServer(sireMockConfig.port)
-    s.start()
-    s
-  }
+  lazy val wireMockServer: WireMockServer = new WireMockServer(sireMockConfig.port)
 
-  def resetAll = {
-    wireMockServer.resetAll()
-  }
-
+  def startSireMock = wireMockServer.start()
+  def stopSireMock = wireMockServer.stop()
+  def resetSireMock = wireMockServer.resetAll()
 
   def mockPost(path: UrlPattern,
               headers: Map[String, StringValuePattern] = Map.empty,
               contentType: Option[String] = None,
               requestBodyMatching: StringValuePattern = new AnythingPattern(),
-              withResponseBody: String,
+              withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
               withFixedDelay: Int = 0) =
@@ -86,7 +81,7 @@ trait SireMock extends Implicits {
                headers: Map[String, StringValuePattern] = Map.empty,
                contentType: Option[String] = None,
                requestBodyMatching: StringValuePattern = new AnythingPattern(),
-               withResponseBody: String,
+               withResponseBody: Option[String] = None,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
                withFixedDelay: Int = 0) =
@@ -106,7 +101,7 @@ trait SireMock extends Implicits {
                headers: Map[String, StringValuePattern] = Map.empty,
                contentType: Option[String] = None,
                requestBodyMatching: StringValuePattern = new AnythingPattern(),
-               withResponseBody: String,
+               withResponseBody: Option[String] = None,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
                withFixedDelay: Int = 0) =
@@ -126,7 +121,7 @@ trait SireMock extends Implicits {
                headers: Map[String, StringValuePattern] = Map.empty,
                contentType: Option[String] = None,
                requestBodyMatching: StringValuePattern = new AnythingPattern(),
-               withResponseBody: String,
+               withResponseBody: Option[String] = None,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
                withFixedDelay: Int = 0) =
@@ -145,7 +140,7 @@ trait SireMock extends Implicits {
   def mockGet(path: UrlPattern,
               headers: Map[String, StringValuePattern] = Map.empty,
               contentType: Option[String] = None,
-              withResponseBody: String,
+              withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
               withFixedDelay: Int = 0) =
@@ -163,7 +158,7 @@ trait SireMock extends Implicits {
   def mockOptions(path: UrlPattern,
               headers: Map[String, StringValuePattern] = Map.empty,
               contentType: Option[String] = None,
-              withResponseBody: String,
+              withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
               withFixedDelay: Int = 0) =
@@ -181,7 +176,7 @@ trait SireMock extends Implicits {
   def mockHead(path: UrlPattern,
               headers: Map[String, StringValuePattern] = Map.empty,
               contentType: Option[String] = None,
-              withResponseBody: String,
+              withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
               withFixedDelay: Int = 0) =
@@ -199,7 +194,7 @@ trait SireMock extends Implicits {
   def mockTrace(path: UrlPattern,
               headers: Map[String, StringValuePattern] = Map.empty,
               contentType: Option[String] = None,
-              withResponseBody: String,
+              withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
               withFixedDelay: Int = 0) =
@@ -217,7 +212,7 @@ trait SireMock extends Implicits {
   def mockAny(path: UrlPattern,
               headers: Map[String, StringValuePattern] = Map.empty,
               contentType: Option[String] = None,
-              withResponseBody: String,
+              withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
               withFixedDelay: Int = 0) =
@@ -237,7 +232,7 @@ trait SireMock extends Implicits {
                      headers: Map[String, StringValuePattern] = Map.empty,
                      contentType: Option[String] = None,
                      requestBodyMatching: StringValuePattern = new AnythingPattern(),
-                     withResponseBody: String,
+                     withResponseBody: Option[String] = None,
                      withResponseStatus: Int = 200,
                      withResponseHeaders: Map[String, List[String]] = Map.empty,
                      withFixedDelay: Int = 0) = {
@@ -253,7 +248,7 @@ trait SireMock extends Implicits {
                         method: HttpMethod,
                         headers: Map[String, StringValuePattern] = Map.empty,
                         contentType: Option[String] = None,
-                        withResponseBody: String,
+                        withResponseBody: Option[String] = None,
                         withResponseStatus: Int = 200,
                         withResponseHeaders: Map[String, List[String]] = Map.empty,
                         withFixedDelay: Int = 0) = {
@@ -270,16 +265,20 @@ trait SireMock extends Implicits {
       .getOrElse(request(method.toString, path))
   }
 
-  private def responseBuilder(withResponseBody: String,
+  private def responseBuilder(withResponseBody: Option[String] = None,
                               withResponseStatus: Int,
                               withResponseHeaders: Map[String, List[String]] = Map.empty,
                               withFixedDelay: Int) = {
     import scala.collection.JavaConverters._
 
-    aResponse()
+    val response = aResponse()
       .withStatus(withResponseStatus)
-      .withBody(withResponseBody)
       .withFixedDelay(withFixedDelay)
       .withHeaders(new HttpHeaders(withResponseHeaders.map { case (k, v) => new HttpHeader(k, v: _*) }.asJava))
+
+    withResponseBody match {
+      case None => response
+      case Some(body) => response.withBody(body)
+    }
   }
 }

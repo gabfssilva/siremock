@@ -8,9 +8,9 @@ If you want to start with SireMock, first you need to add the dependency:
 ```scala
 //only for Scala 2.12
 
-resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/releases"
+resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/maven"
 
-libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.1" % "test"
+libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.2" % "test"
 ```
 
 

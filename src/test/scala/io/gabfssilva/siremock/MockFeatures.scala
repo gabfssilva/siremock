@@ -1,6 +1,5 @@
 package io.gabfssilva.siremock
 
-import io.gabfssilva.SireMockSupport
 import org.scalatest.{BeforeAndAfter, FeatureSpec, Matchers}
 
 import scalaj.http.{Http, StringBodyConnectFunc}
@@ -8,13 +7,18 @@ import scalaj.http.{Http, StringBodyConnectFunc}
 class MockFeatures
   extends FeatureSpec
     with Matchers
-    with SireMockSupport
+    with SireMock
     with BeforeAndAfter {
 
   override val sireMockConfig: SireMockConfig = SireMockConfig(port = 8181)
 
   before {
-    resetAll
+    startSireMock
+    resetSireMock
+  }
+
+  after {
+    stopSireMock
   }
 
   feature("GET") {
@@ -23,7 +27,7 @@ class MockFeatures
 
       mockGet(
         path = "/hello",
-        withResponseBody = expectedResponseBody
+        withResponseBody = Some(expectedResponseBody)
       )
 
       val response = Http("http://localhost:8181/hello")
@@ -43,7 +47,7 @@ class MockFeatures
         path = "/hello",
         requestBodyMatching = """{"hi":"you"}""",
         contentType = Some("application/json"),
-        withResponseBody = expectedResponseBody,
+        withResponseBody = Some(expectedResponseBody),
         withResponseStatus = 201
       )
 
@@ -65,7 +69,7 @@ class MockFeatures
         path = "/hello",
         requestBodyMatching = """{"hi":"you"}""",
         contentType = Some("application/json"),
-        withResponseBody = expectedResponseBody
+        withResponseBody = Some(expectedResponseBody)
       )
 
       val response = Http("http://localhost:8181/hello")
@@ -84,7 +88,7 @@ class MockFeatures
 
       mockDelete(
         path = "/hello",
-        withResponseBody = expectedResponseBody
+        withResponseBody = Some(expectedResponseBody)
       )
 
       val response = Http("http://localhost:8181/hello").method("delete")
@@ -104,7 +108,7 @@ class MockFeatures
         path = "/hello",
         requestBodyMatching = """{"hi":"you"}""",
         contentType = Some("application/json"),
-        withResponseBody = expectedResponseBody,
+        withResponseBody = Some(expectedResponseBody),
       )
 
       val response = Http("http://localhost:8181/hello")
