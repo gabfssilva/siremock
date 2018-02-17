@@ -1,13 +1,16 @@
 package io.gabfssilva.siremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.{CountMatchingStrategy, WireMock}
 import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.http.{HttpHeader, HttpHeaders}
-import com.github.tomakehurst.wiremock.matching.{AnythingPattern, BinaryEqualToPattern, StringValuePattern, UrlPattern}
+import com.github.tomakehurst.wiremock.matching._
 import io.gabfssilva.siremock.HttpMethods._
 
 import scala.language.implicitConversions
+import scala.util.Try
 
 object SireMock {
   def apply(config: SireMockConfig = SireMockConfig()): SireMock = new SireMock() {
@@ -17,6 +20,14 @@ object SireMock {
 
 trait Implicits {
   import scala.collection.JavaConverters._
+
+  implicit class CountMatchingImplicits(value: Int) {
+    def lessThanStrategy: CountMatchingStrategy = WireMock.lessThan(value)
+    def lessThanOrExactlyStrategy: CountMatchingStrategy = WireMock.lessThanOrExactly(value)
+    def exactlyStrategy: CountMatchingStrategy = WireMock.exactly(value)
+    def moreThanOrExactlyStrategy: CountMatchingStrategy = WireMock.moreThanOrExactly(value)
+    def moreThanStrategy: CountMatchingStrategy = WireMock.moreThan(value)
+  }
   
   implicit class StringValuePatternImplicits(str: String) {
     def matching: StringValuePattern = WireMock.matching(str)
@@ -52,10 +63,160 @@ trait SireMock extends Implicits {
   val sireMockConfig: SireMockConfig
 
   lazy val wireMockServer: WireMockServer = new WireMockServer(sireMockConfig.port)
+  lazy val wireMockClient = new WireMock(sireMockConfig.port)
 
   def startSireMock = wireMockServer.start()
   def stopSireMock = wireMockServer.stop()
   def resetSireMock = wireMockServer.resetAll()
+
+  private def requestPatternBuilder(initialBuilder: RequestPatternBuilder,
+                                    headers: Map[String, StringValuePattern],
+                                    contentType: Option[String],
+                                    requestBodyMatching: StringValuePattern) = {
+    def pattern =
+      headers
+        .foldLeft(initialBuilder) { case (builder, (k, v)) =>
+          builder.withHeader(k, v)
+        }
+        .withRequestBody(requestBodyMatching)
+
+    contentType match {
+      case Some(t) => pattern.withHeader("Content-Type", t)
+      case None => pattern
+    }
+  }
+
+  def verifyPost(path: UrlPattern,
+                 count: CountMatchingStrategy = 1.exactlyStrategy,
+                 headers: Map[String, StringValuePattern] = Map.empty,
+                 contentType: Option[String] = None,
+                 requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
+    
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        postRequestedFor(path),
+        headers,
+        contentType,
+        requestBodyMatching
+      )
+    )
+  }
+
+  def verifyPut(path: UrlPattern,
+                count: CountMatchingStrategy = 1.exactlyStrategy,
+                headers: Map[String, StringValuePattern] = Map.empty,
+                contentType: Option[String] = None,
+                requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        putRequestedFor(path),
+        headers,
+        contentType,
+        requestBodyMatching
+      )
+    )
+  }
+
+  def verifyDelete(path: UrlPattern,
+                count: CountMatchingStrategy = 1.exactlyStrategy,
+                headers: Map[String, StringValuePattern] = Map.empty,
+                contentType: Option[String] = None,
+                requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        deleteRequestedFor(path),
+        headers,
+        contentType,
+        requestBodyMatching
+      )
+    )
+  }
+
+  def verifyAny(path: UrlPattern,
+                count: CountMatchingStrategy = 1.exactlyStrategy,
+                headers: Map[String, StringValuePattern] = Map.empty,
+                contentType: Option[String] = None,
+                requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        anyRequestedFor(path),
+        headers,
+        contentType,
+        requestBodyMatching
+      )
+    )
+  }
+
+  def verifyPatch(path: UrlPattern,
+                  count: CountMatchingStrategy = 1.exactlyStrategy,
+                  headers: Map[String, StringValuePattern] = Map.empty,
+                  contentType: Option[String] = None,
+                  requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        patchRequestedFor(path),
+        headers,
+        contentType,
+        requestBodyMatching
+      )
+    )
+  }
+
+  def verifyGet(path: UrlPattern,
+                count: CountMatchingStrategy = 1.exactlyStrategy,
+                headers: Map[String, StringValuePattern] = Map.empty,
+                contentType: Option[String] = None) = {
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        getRequestedFor(path),
+        headers,
+        contentType,
+        new AnythingPattern()
+      )
+    )
+  }
+
+  def verifyTrace(path: UrlPattern,
+                count: CountMatchingStrategy = 1.exactlyStrategy,
+                headers: Map[String, StringValuePattern] = Map.empty,
+                contentType: Option[String] = None) = {
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        traceRequestedFor(path),
+        headers,
+        contentType,
+        new AnythingPattern()
+      )
+    )
+  }
+
+  def verifyHead(path: UrlPattern,
+                 count: CountMatchingStrategy = 1.exactlyStrategy,
+                 headers: Map[String, StringValuePattern] = Map.empty,
+                 contentType: Option[String] = None) = {
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        headRequestedFor(path),
+        headers,
+        contentType,
+        new AnythingPattern()
+      )
+    )
+  }
+
+  def verifyOptions(path: UrlPattern,
+                    count: CountMatchingStrategy = 1.exactlyStrategy,
+                    headers: Map[String, StringValuePattern] = Map.empty,
+                    contentType: Option[String] = None) = {
+    wireMockClient.verifyThat(count,
+      requestPatternBuilder(
+        optionsRequestedFor(path),
+        headers,
+        contentType,
+        new AnythingPattern()
+      )
+    )
+  }
 
   def mockPost(path: UrlPattern,
               headers: Map[String, StringValuePattern] = Map.empty,

@@ -37,6 +37,24 @@ class MockFeatures
       response.body shouldBe expectedResponseBody
       response.code shouldBe 200
     }
+
+    scenario("basic verifying") {
+      val expectedResponseBody = """{"hello":"world"}"""
+
+      mockGet(
+        path = "/hello-verified",
+        withResponseBody = Some(expectedResponseBody)
+      )
+
+      val response = Http("http://localhost:8181/hello-verified")
+        .method("get")
+        .asString
+
+      response.body shouldBe expectedResponseBody
+      response.code shouldBe 200
+
+      verifyGet("/hello-verified", count = 1.exactlyStrategy)
+    }
   }
 
   feature("POST") {

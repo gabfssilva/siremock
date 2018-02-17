@@ -10,7 +10,7 @@ If you want to start with SireMock, first you need to add the dependency:
 
 resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/maven"
 
-libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.2" % "test"
+libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.3" % "test"
 ```
 
 ## The obligatory hello world
@@ -43,6 +43,8 @@ class MockFeatures extends FeatureSpec with Matchers with BeforeAndAfter with Si
 
       response.body shouldBe expectedResponseBody
       response.code shouldBe 200
+
+      verifyGet("/hello", count = 1.exactlyStrategy)
     }
   }
 }
