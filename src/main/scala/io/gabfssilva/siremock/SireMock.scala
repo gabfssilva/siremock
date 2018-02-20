@@ -1,7 +1,7 @@
 package io.gabfssilva.siremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.{CountMatchingStrategy, WireMock}
+import com.github.tomakehurst.wiremock.client.{BasicCredentials, CountMatchingStrategy, WireMock}
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
@@ -72,7 +72,8 @@ trait SireMock extends Implicits {
   private def requestPatternBuilder(initialBuilder: RequestPatternBuilder,
                                     headers: Map[String, StringValuePattern],
                                     contentType: Option[String],
-                                    requestBodyMatching: StringValuePattern) = {
+                                    requestBodyMatching: StringValuePattern,
+                                    basicAuth: Option[(String, String)]) = {
     def pattern =
       headers
         .foldLeft(initialBuilder) { case (builder, (k, v)) =>
@@ -80,9 +81,21 @@ trait SireMock extends Implicits {
         }
         .withRequestBody(requestBodyMatching)
 
-    contentType match {
-      case Some(t) => pattern.withHeader("Content-Type", t)
-      case None => pattern
+    (contentType, basicAuth) match {
+      case (Some(t), Some((username, password))) =>
+        pattern
+          .withHeader("Content-Type", t)
+          .withBasicAuth(new BasicCredentials(username, password))
+
+      case (Some(t), None) =>
+        pattern
+          .withHeader("Content-Type", t)
+
+      case (None, Some((username, password))) =>
+        pattern
+          .withBasicAuth(new BasicCredentials(username, password))
+
+      case (None, None) => pattern
     }
   }
 
@@ -90,6 +103,7 @@ trait SireMock extends Implicits {
                  count: CountMatchingStrategy = 1.exactlyStrategy,
                  headers: Map[String, StringValuePattern] = Map.empty,
                  contentType: Option[String] = None,
+                 basicAuth: Option[(String, String)] = None,
                  requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
     
     wireMockClient.verifyThat(count,
@@ -97,7 +111,8 @@ trait SireMock extends Implicits {
         postRequestedFor(path),
         headers,
         contentType,
-        requestBodyMatching
+        requestBodyMatching,
+        basicAuth
       )
     )
   }
@@ -106,13 +121,15 @@ trait SireMock extends Implicits {
                 count: CountMatchingStrategy = 1.exactlyStrategy,
                 headers: Map[String, StringValuePattern] = Map.empty,
                 contentType: Option[String] = None,
+                basicAuth: Option[(String, String)] = None,
                 requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
     wireMockClient.verifyThat(count,
       requestPatternBuilder(
         putRequestedFor(path),
         headers,
         contentType,
-        requestBodyMatching
+        requestBodyMatching,
+        basicAuth
       )
     )
   }
@@ -121,13 +138,15 @@ trait SireMock extends Implicits {
                 count: CountMatchingStrategy = 1.exactlyStrategy,
                 headers: Map[String, StringValuePattern] = Map.empty,
                 contentType: Option[String] = None,
+                basicAuth: Option[(String, String)] = None,
                 requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
     wireMockClient.verifyThat(count,
       requestPatternBuilder(
         deleteRequestedFor(path),
         headers,
         contentType,
-        requestBodyMatching
+        requestBodyMatching,
+        basicAuth
       )
     )
   }
@@ -136,13 +155,15 @@ trait SireMock extends Implicits {
                 count: CountMatchingStrategy = 1.exactlyStrategy,
                 headers: Map[String, StringValuePattern] = Map.empty,
                 contentType: Option[String] = None,
+                basicAuth: Option[(String, String)] = None,
                 requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
     wireMockClient.verifyThat(count,
       requestPatternBuilder(
         anyRequestedFor(path),
         headers,
         contentType,
-        requestBodyMatching
+        requestBodyMatching,
+        basicAuth
       )
     )
   }
@@ -151,13 +172,15 @@ trait SireMock extends Implicits {
                   count: CountMatchingStrategy = 1.exactlyStrategy,
                   headers: Map[String, StringValuePattern] = Map.empty,
                   contentType: Option[String] = None,
+                  basicAuth: Option[(String, String)] = None,
                   requestBodyMatching: StringValuePattern = new AnythingPattern()) = {
     wireMockClient.verifyThat(count,
       requestPatternBuilder(
         patchRequestedFor(path),
         headers,
         contentType,
-        requestBodyMatching
+        requestBodyMatching,
+        basicAuth
       )
     )
   }
@@ -165,13 +188,15 @@ trait SireMock extends Implicits {
   def verifyGet(path: UrlPattern,
                 count: CountMatchingStrategy = 1.exactlyStrategy,
                 headers: Map[String, StringValuePattern] = Map.empty,
+                basicAuth: Option[(String, String)] = None,
                 contentType: Option[String] = None) = {
     wireMockClient.verifyThat(count,
       requestPatternBuilder(
         getRequestedFor(path),
         headers,
         contentType,
-        new AnythingPattern()
+        new AnythingPattern(),
+        basicAuth
       )
     )
   }
@@ -179,13 +204,15 @@ trait SireMock extends Implicits {
   def verifyTrace(path: UrlPattern,
                 count: CountMatchingStrategy = 1.exactlyStrategy,
                 headers: Map[String, StringValuePattern] = Map.empty,
+                basicAuth: Option[(String, String)] = None,
                 contentType: Option[String] = None) = {
     wireMockClient.verifyThat(count,
       requestPatternBuilder(
         traceRequestedFor(path),
         headers,
         contentType,
-        new AnythingPattern()
+        new AnythingPattern(),
+        basicAuth
       )
     )
   }
@@ -193,13 +220,15 @@ trait SireMock extends Implicits {
   def verifyHead(path: UrlPattern,
                  count: CountMatchingStrategy = 1.exactlyStrategy,
                  headers: Map[String, StringValuePattern] = Map.empty,
+                 basicAuth: Option[(String, String)] = None,
                  contentType: Option[String] = None) = {
     wireMockClient.verifyThat(count,
       requestPatternBuilder(
         headRequestedFor(path),
         headers,
         contentType,
-        new AnythingPattern()
+        new AnythingPattern(),
+        basicAuth
       )
     )
   }
@@ -207,13 +236,15 @@ trait SireMock extends Implicits {
   def verifyOptions(path: UrlPattern,
                     count: CountMatchingStrategy = 1.exactlyStrategy,
                     headers: Map[String, StringValuePattern] = Map.empty,
+                    basicAuth: Option[(String, String)] = None,
                     contentType: Option[String] = None) = {
     wireMockClient.verifyThat(count,
       requestPatternBuilder(
         optionsRequestedFor(path),
         headers,
         contentType,
-        new AnythingPattern()
+        new AnythingPattern(),
+        basicAuth
       )
     )
   }
@@ -225,6 +256,7 @@ trait SireMock extends Implicits {
               withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
+              withBasicAuth: Option[(String, String)] = None,
               withFixedDelay: Int = 0) =
     mockWithEntity(
       path = path,
@@ -235,7 +267,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockPut(path: UrlPattern,
@@ -245,6 +278,7 @@ trait SireMock extends Implicits {
                withResponseBody: Option[String] = None,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
+               withBasicAuth: Option[(String, String)] = None,
                withFixedDelay: Int = 0) =
     mockWithEntity(
       path = path,
@@ -255,7 +289,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockPatch(path: UrlPattern,
@@ -265,6 +300,7 @@ trait SireMock extends Implicits {
                withResponseBody: Option[String] = None,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
+               withBasicAuth: Option[(String, String)] = None,
                withFixedDelay: Int = 0) =
     mockWithEntity(
       path = path,
@@ -275,7 +311,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockDelete(path: UrlPattern,
@@ -285,6 +322,7 @@ trait SireMock extends Implicits {
                withResponseBody: Option[String] = None,
                withResponseStatus: Int = 200,
                withResponseHeaders: Map[String, List[String]] = Map.empty,
+               withBasicAuth: Option[(String, String)] = None,
                withFixedDelay: Int = 0) =
     mockWithEntity(
       path = path,
@@ -295,7 +333,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockGet(path: UrlPattern,
@@ -304,6 +343,7 @@ trait SireMock extends Implicits {
               withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
+              withBasicAuth: Option[(String, String)] = None,
               withFixedDelay: Int = 0) =
     mockWithoutEntity(
       path = path,
@@ -313,7 +353,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockOptions(path: UrlPattern,
@@ -322,6 +363,7 @@ trait SireMock extends Implicits {
               withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
+              withBasicAuth: Option[(String, String)] = None,
               withFixedDelay: Int = 0) =
     mockWithoutEntity(
       path = path,
@@ -331,7 +373,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockHead(path: UrlPattern,
@@ -340,6 +383,7 @@ trait SireMock extends Implicits {
               withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
+              withBasicAuth: Option[(String, String)] = None,
               withFixedDelay: Int = 0) =
     mockWithoutEntity(
       path = path,
@@ -349,7 +393,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockTrace(path: UrlPattern,
@@ -358,6 +403,7 @@ trait SireMock extends Implicits {
               withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
+              withBasicAuth: Option[(String, String)] = None,
               withFixedDelay: Int = 0) =
     mockWithoutEntity(
       path = path,
@@ -367,7 +413,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockAny(path: UrlPattern,
@@ -376,6 +423,7 @@ trait SireMock extends Implicits {
               withResponseBody: Option[String] = None,
               withResponseStatus: Int = 200,
               withResponseHeaders: Map[String, List[String]] = Map.empty,
+              withBasicAuth: Option[(String, String)] = None,
               withFixedDelay: Int = 0) =
     mockWithoutEntity(
       path = path,
@@ -385,7 +433,8 @@ trait SireMock extends Implicits {
       withResponseBody = withResponseBody,
       withResponseStatus = withResponseStatus,
       withResponseHeaders = withResponseHeaders,
-      withFixedDelay = withFixedDelay
+      withFixedDelay = withFixedDelay,
+      withBasicAuth = withBasicAuth
     )
 
   def mockWithEntity(path: UrlPattern,
@@ -396,10 +445,11 @@ trait SireMock extends Implicits {
                      withResponseBody: Option[String] = None,
                      withResponseStatus: Int = 200,
                      withResponseHeaders: Map[String, List[String]] = Map.empty,
+                     withBasicAuth: Option[(String, String)],
                      withFixedDelay: Int = 0) = {
     wireMockServer.stubFor {
       headers
-        .foldLeft(initialRequest(path, method, contentType)) { case (previous, (k, v)) => previous.withHeader(k, v) }
+        .foldLeft(initialRequest(path, method, contentType, withBasicAuth)) { case (previous, (k, v)) => previous.withHeader(k, v) }
         .withRequestBody(requestBodyMatching)
         .willReturn(responseBuilder(withResponseBody, withResponseStatus, withResponseHeaders, withFixedDelay))
     }
@@ -412,18 +462,33 @@ trait SireMock extends Implicits {
                         withResponseBody: Option[String] = None,
                         withResponseStatus: Int = 200,
                         withResponseHeaders: Map[String, List[String]] = Map.empty,
+                        withBasicAuth: Option[(String, String)],
                         withFixedDelay: Int = 0) = {
     wireMockServer.stubFor {
       headers
-        .foldLeft(initialRequest(path, method, contentType)) { case (previous, (k, v)) => previous.withHeader(k, v) }
+        .foldLeft(initialRequest(path, method, contentType, withBasicAuth)) { case (previous, (k, v)) => previous.withHeader(k, v) }
         .willReturn(responseBuilder(withResponseBody, withResponseStatus, withResponseHeaders, withFixedDelay))
     }
   }
 
-  private def initialRequest(path: UrlPattern, method: HttpMethod, contentType: Option[String] = None) = {
-    contentType
-      .map { ct => request(method.toString, path).withHeader("Content-Type", ct) }
-      .getOrElse(request(method.toString, path))
+  private def initialRequest(path: UrlPattern, method: HttpMethod, contentType: Option[String] = None, basicAuth: Option[(String, String)]) = {
+    (contentType, basicAuth) match {
+      case (Some(ct), Some((username, password))) =>
+        request(method.toString, path)
+          .withHeader("Content-Type", ct)
+          .withBasicAuth(username, password)
+
+      case (None, Some((username, password))) =>
+        request(method.toString, path)
+          .withBasicAuth(username, password)
+
+      case (Some(ct), None) =>
+        request(method.toString, path)
+          .withHeader("Content-Type", ct)
+
+      case (None, None) =>
+        request(method.toString, path)
+    }
   }
 
   private def responseBuilder(withResponseBody: Option[String] = None,

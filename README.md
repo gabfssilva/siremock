@@ -10,7 +10,7 @@ If you want to start with SireMock, first you need to add the dependency:
 
 resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/maven"
 
-libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.3" % "test"
+libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.4" % "test"
 ```
 
 ## The obligatory hello world

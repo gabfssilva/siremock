@@ -55,6 +55,24 @@ class MockFeatures
 
       verifyGet("/hello-verified", count = 1.exactlyStrategy)
     }
+
+    scenario("basic authentication") {
+      val expectedResponseBody = """{"hello":"world"}"""
+
+      mockGet(
+        path = "/hello-auth",
+        withResponseBody = Some(expectedResponseBody),
+        withBasicAuth = Some("user" -> "pass")
+      )
+
+      val response = Http("http://localhost:8181/hello-auth")
+        .method("get")
+        .auth("user", "pass")
+        .asString
+
+      response.body shouldBe expectedResponseBody
+      response.code shouldBe 200
+    }
   }
 
   feature("POST") {
