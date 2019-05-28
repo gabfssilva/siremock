@@ -1,77 +1,93 @@
 package io.gabfssilva.siremock
 
-import org.scalatest.{BeforeAndAfter, FeatureSpec, Matchers}
+import java.util.UUID
 
+import com.github.tomakehurst.wiremock.WireMockServer
+import org.scalatest.{BeforeAndAfter, FeatureSpec, Matchers}
 import scalaj.http.{Http, StringBodyConnectFunc}
+
+import scala.language.postfixOps
 
 class MockFeatures
   extends FeatureSpec
     with Matchers
-    with SireMock
+    with SireMockServer
     with BeforeAndAfter {
 
-  override val sireMockConfig: SireMockConfig = SireMockConfig(port = 8181)
+  private val port = 8183
+
+  override val wireMockServer: WireMockServer = new WireMockServer(port)
 
   before {
-    startSireMock
-    resetSireMock
+    startWireMock()
   }
 
   after {
-    stopSireMock
+    resetWireMock()
+    stopWireMock()
   }
 
   feature("GET") {
     scenario("basic mocking") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      mockGet(
-        path = "/hello",
-        withResponseBody = Some(expectedResponseBody)
-      )
+      (on(urlEqualTo("/hello")) get) returning (aResponse withBody expectedResponseBody)
 
-      val response = Http("http://localhost:8181/hello")
-        .method("get")
-        .asString
+      val resp = Http("http://localhost:" + port + "/hello").method("get").asString
 
-      response.body shouldBe expectedResponseBody
-      response.code shouldBe 200
+      resp.body shouldBe expectedResponseBody
+      resp.code shouldBe 200
     }
 
     scenario("basic verifying") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      mockGet(
-        path = "/hello-verified",
-        withResponseBody = Some(expectedResponseBody)
-      )
+      val request = on(urlEqualTo("/hello-verified")) get
 
-      val response = Http("http://localhost:8181/hello-verified")
-        .method("get")
-        .asString
+      request.returning(aResponse withBody expectedResponseBody)
 
-      response.body shouldBe expectedResponseBody
-      response.code shouldBe 200
+      val resp = Http("http://localhost:" + port + "/hello-verified").method("get").asString
 
-      verifyGet("/hello-verified", count = 1.exactlyStrategy)
+      resp.body shouldBe expectedResponseBody
+      resp.code shouldBe 200
+
+      verify(request) wasCalled 1
     }
 
     scenario("basic authentication") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      mockGet(
-        path = "/hello-auth",
-        withResponseBody = Some(expectedResponseBody),
-        withBasicAuth = Some("user" -> "pass")
-      )
+      on(urlEqualTo("/hello-auth"))
+        .get
+        .withAuth(BasicAuth("user", "pass"))
+        .returning(aResponse.withBody(expectedResponseBody))
 
-      val response = Http("http://localhost:8181/hello-auth")
+      val resp = Http("http://localhost:" + port + "/hello-auth")
         .method("get")
         .auth("user", "pass")
         .asString
 
-      response.body shouldBe expectedResponseBody
-      response.code shouldBe 200
+      resp.body shouldBe expectedResponseBody
+      resp.code shouldBe 200
+    }
+
+    scenario("token authentication") {
+      val token = UUID.randomUUID().toString.replace("-", "")
+
+      val expectedResponseBody = """{"hello":"world"}"""
+
+      on(urlEqualTo("/hello-auth"))
+        .get
+        .withAuth(BearerToken(token))
+        .returning(aResponse.withBody(expectedResponseBody))
+
+      val resp = Http("http://localhost:" + port + "/hello-auth")
+        .method("get")
+        .header("Authorization", s"Bearer $token")
+        .asString
+
+      resp.body shouldBe expectedResponseBody
+      resp.code shouldBe 200
     }
   }
 
@@ -79,15 +95,17 @@ class MockFeatures
     scenario("basic mocking") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      mockPost(
-        path = "/hello",
-        requestBodyMatching = """{"hi":"you"}""",
-        contentType = Some("application/json"),
-        withResponseBody = Some(expectedResponseBody),
-        withResponseStatus = 201
-      )
+      on(urlEqualTo("/hello"))
+        .post
+        .withBody(equalToJson("""{"hi":"you"}"""))
+        .withContentType("application/json")
+        .returning(
+          aResponse
+            .withBody(expectedResponseBody)
+            .withStatus(201)
+        )
 
-      val response = Http("http://localhost:8181/hello")
+      val response = Http("http://localhost:" + port + "/hello")
         .header("Content-Type", "application/json")
         .postData("""{"hi":"you"}""")
         .asString
@@ -101,20 +119,23 @@ class MockFeatures
     scenario("basic mocking") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      mockPut(
-        path = "/hello",
-        requestBodyMatching = """{"hi":"you"}""",
-        contentType = Some("application/json"),
-        withResponseBody = Some(expectedResponseBody)
-      )
+      on(urlEqualTo("/hello"))
+        .put
+        .withBody(equalToJson("""{"hi":"you"}"""))
+        .withContentType("application/json")
+        .returning(
+          aResponse
+            .withBody(expectedResponseBody)
+            .withStatus(201)
+        )
 
-      val response = Http("http://localhost:8181/hello")
+      val response = Http("http://localhost:" + port + "/hello")
         .header("Content-Type", "application/json")
         .put("""{"hi":"you"}""")
         .asString
 
       response.body shouldBe expectedResponseBody
-      response.code shouldBe 200
+      response.code shouldBe 201
     }
   }
 
@@ -122,14 +143,14 @@ class MockFeatures
     scenario("basic mocking") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      mockDelete(
-        path = "/hello",
-        withResponseBody = Some(expectedResponseBody)
-      )
+      on(urlEqualTo("/hello"))
+        .delete
+        .returning(aResponse.withBody(expectedResponseBody))
 
-      val response = Http("http://localhost:8181/hello").method("delete")
-//        .copy(connectFunc=StringBodyConnectFunc(""))
-        .asString
+      val response =
+        Http("http://localhost:" + port + "/hello")
+          .method("delete")
+          .asString
 
       response.body shouldBe expectedResponseBody
       response.code shouldBe 200
@@ -140,16 +161,14 @@ class MockFeatures
     scenario("basic mocking") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      mockPatch(
-        path = "/hello",
-        requestBodyMatching = """{"hi":"you"}""",
-        contentType = Some("application/json"),
-        withResponseBody = Some(expectedResponseBody),
-      )
+      on(urlEqualTo("/hello"))
+        .patch
+        .withBody(equalToJson("""{"hi":"you"}"""))
+        .returning(aResponse.withBody(expectedResponseBody))
 
-      val response = Http("http://localhost:8181/hello")
+      val response = Http("http://localhost:" + port + "/hello")
         .header("Content-Type", "application/json")
-        .copy(connectFunc=StringBodyConnectFunc("""{"hi":"you"}"""))
+        .copy(connectFunc = StringBodyConnectFunc("""{"hi":"you"}"""))
         .method("PATCH")
         .asString
 

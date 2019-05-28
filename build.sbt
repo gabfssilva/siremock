@@ -1,15 +1,17 @@
 name := "siremock"
 organization := "io.github.gabfssilva"
-version := "0.0.4"
-scalaVersion := "2.12.4"
+version := "1.0.0"
+scalaVersion := "2.12.8"
 
 resolvers += Resolver.jcenterRepo
 
 bintrayOrganization := Some("gabfssilva")
 
+bintrayRepository := "maven"
+
 licenses += ("MIT", url("http://opensource.org/licenses/MIT"))
 
-val wiremockVersion = "2.11.0"
+val wiremockVersion = "2.23.2"
 
 libraryDependencies ++= Seq(
   "com.github.tomakehurst" % "wiremock" % wiremockVersion,

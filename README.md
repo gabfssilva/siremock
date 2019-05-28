@@ -10,44 +10,61 @@ If you want to start with SireMock, first you need to add the dependency:
 
 resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/maven"
 
-libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.4" % "test"
+libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.5" % "test"
 ```
 
 ## The obligatory hello world
 
 ```scala
-class MockFeatures extends FeatureSpec with Matchers with BeforeAndAfter with SireMock  {
-  override val sireMockConfig: SireMockConfig = SireMockConfig(port = 8181)
+class MockFeatures
+  extends FeatureSpec
+    with Matchers
+    with SireMockServer
+    with BeforeAndAfter {
+
+  private val port = 8183
+
+  override val wireMockServer: WireMockServer = new WireMockServer(port)
 
   before {
-    startSireMock
-    resetSireMock
+    startWireMock()
   }
 
   after {
-    stopSireMock
+    resetWireMock()
+    stopWireMock()
   }
 
   feature("GET") {
     scenario("basic mocking") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      mockGet(
-        path = "/hello",
-        withResponseBody = Some(expectedResponseBody)
-      )
+      (on(urlEqualTo("/hello")) get) returning (aResponse withBody expectedResponseBody)
 
-      val response = Http("http://localhost:8181/hello")
-        .method("get")
-        .asString
+      val resp = Http("http://localhost:" + port + "/hello").method("get").asString
 
-      response.body shouldBe expectedResponseBody
-      response.code shouldBe 200
-
-      verifyGet("/hello", count = 1.exactlyStrategy)
+      resp.body shouldBe expectedResponseBody
+      resp.code shouldBe 200
     }
-  }
+ }
 }
+```
+
+Of course, you can use it without postfix operator notation:
+
+```scala
+val expectedResponseBody = """{"hello":"world"}"""
+
+on(urlEqualTo("/hello")
+  .get
+  .returning(
+    aResponse.withBody(expectedResponseBody)
+  )
+
+val resp = Http("http://localhost:" + port + "/hello").method("get").asString
+
+resp.body shouldBe expectedResponseBody
+resp.code shouldBe 200
 ```
 
 
