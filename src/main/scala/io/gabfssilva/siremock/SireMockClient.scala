@@ -14,7 +14,7 @@ trait ContentPatterns {
   def containing(str: String): StringValuePattern = WireMock.containing(str)
   def equalToXml(str: String): StringValuePattern = WireMock.equalToXml(str)
   def matchingJsonPath(str: String): StringValuePattern = WireMock.matchingJsonPath(str)
-  def equalToJson(str: String, ignoreArrayOrder: Boolean = true, ignoreExtraElements: Boolean = true): StringValuePattern = WireMock.equalToJson(str)
+  def equalToJson(str: String, ignoreArrayOrder: Boolean = true, ignoreExtraElements: Boolean = true): StringValuePattern = WireMock.equalToJson(str, ignoreArrayOrder, ignoreExtraElements)
   def equalTo(str: String): StringValuePattern = WireMock.equalTo(str)
   def equalToIgnoreCase(str: String): StringValuePattern = WireMock.equalToIgnoreCase(str)
   def binaryEqualTo(str: String): BinaryEqualToPattern = WireMock.binaryEqualTo(str)
@@ -46,12 +46,10 @@ trait WireMockSupport
     with UrlPatterns
     with VerifySupport {
 
+  val wireMockClient: WireMock
+
   def on(url: UrlPattern) = RequestBuilder(url = url)
   def aResponse = ResponseBuilder()
-}
-
-trait SireMockClient extends WireMockSupport {
-  val wireMockClient: WireMock
 
   def resetWireMock(): Unit = {
     wireMockClient.resetMappings()
@@ -61,13 +59,13 @@ trait SireMockClient extends WireMockSupport {
   }
 
   implicit class RegisterMappingImplicits(requestBuilder: RequestBuilder) {
-    def returning(responseBuilder: ResponseBuilder): StubMapping =
+    def respond(responseBuilder: ResponseBuilder): StubMapping =
       wireMockClient.register(Mapping(requestBuilder, responseBuilder).toMappingBuilder)
 
   }
 
   implicit class VerifyImplicits(verify: Verify) {
-    def that(count: CountMatchingStrategy): Unit =
+    def wasCalled(count: CountMatchingStrategy): Unit =
       wireMockClient.verifyThat(count, verify.requestMapping)
   }
 }
@@ -77,15 +75,9 @@ trait SireMockServer extends WireMockSupport {
 
   def startWireMock(): Unit = wireMockServer.start()
   def stopWireMock(): Unit = wireMockServer.stop()
-  def resetWireMock(): Unit = wireMockServer.resetAll()
 
-  implicit class RegisterMappingImplicits(requestBuilder: RequestBuilder) {
-    def returning(responseBuilder: ResponseBuilder): StubMapping =
-      wireMockServer.stubFor(Mapping(requestBuilder, responseBuilder).toMappingBuilder)
-  }
-
-  implicit class VerifyImplicits(verify: Verify) {
-    def wasCalled(count: Int): Unit =
-      wireMockServer.verify(count, verify.requestMapping)
+  implicit lazy val wireMockClient: WireMock = {
+    val scheme = if (wireMockServer.getOptions.httpsSettings.enabled) "https" else "http"
+    new WireMock(scheme, "localhost", wireMockServer.port())
   }
 }

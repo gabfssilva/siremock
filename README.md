@@ -10,7 +10,7 @@ If you want to start with SireMock, first you need to add the dependency:
 
 resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/maven"
 
-libraryDependencies += "io.github.gabfssilva" %% "siremock" % "0.0.5" % "test"
+libraryDependencies += "io.github.gabfssilva" %% "siremock" % "1.0.0" % "test"
 ```
 
 ## The obligatory hello world
@@ -39,7 +39,7 @@ class MockFeatures
     scenario("basic mocking") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      (on(urlEqualTo("/hello")) get) returning (aResponse withBody expectedResponseBody)
+      (on(urlEqualTo("/hello")) get) respond (aResponse withBody expectedResponseBody)
 
       val resp = Http("http://localhost:" + port + "/hello").method("get").asString
 
@@ -57,7 +57,7 @@ val expectedResponseBody = """{"hello":"world"}"""
 
 on(urlEqualTo("/hello")
   .get
-  .returning(
+  .respond(
     aResponse.withBody(expectedResponseBody)
   )
 

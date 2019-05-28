@@ -31,7 +31,7 @@ class MockFeatures
     scenario("basic mocking") {
       val expectedResponseBody = """{"hello":"world"}"""
 
-      (on(urlEqualTo("/hello")) get) returning (aResponse withBody expectedResponseBody)
+      (on(urlEqualTo("/hello")) get) respond (aResponse withBody expectedResponseBody)
 
       val resp = Http("http://localhost:" + port + "/hello").method("get").asString
 
@@ -44,14 +44,15 @@ class MockFeatures
 
       val request = on(urlEqualTo("/hello-verified")) get
 
-      request.returning(aResponse withBody expectedResponseBody)
+      request.respond(aResponse withBody expectedResponseBody withContentType "application/json")
 
       val resp = Http("http://localhost:" + port + "/hello-verified").method("get").asString
 
       resp.body shouldBe expectedResponseBody
       resp.code shouldBe 200
+      resp.contentType shouldBe Some("application/json")
 
-      verify(request) wasCalled 1
+      verify(request) wasCalled exactly(1)
     }
 
     scenario("basic authentication") {
@@ -60,7 +61,7 @@ class MockFeatures
       on(urlEqualTo("/hello-auth"))
         .get
         .withAuth(BasicAuth("user", "pass"))
-        .returning(aResponse.withBody(expectedResponseBody))
+        .respond(aResponse.withBody(expectedResponseBody))
 
       val resp = Http("http://localhost:" + port + "/hello-auth")
         .method("get")
@@ -79,7 +80,7 @@ class MockFeatures
       on(urlEqualTo("/hello-auth"))
         .get
         .withAuth(BearerToken(token))
-        .returning(aResponse.withBody(expectedResponseBody))
+        .respond(aResponse.withBody(expectedResponseBody))
 
       val resp = Http("http://localhost:" + port + "/hello-auth")
         .method("get")
@@ -88,6 +89,24 @@ class MockFeatures
 
       resp.body shouldBe expectedResponseBody
       resp.code shouldBe 200
+    }
+
+    scenario("basic with state") {
+      val expectedResponseBody1 = """{"hello":"world-1"}"""
+      val expectedResponseBody2 = """{"hello":"world-2"}"""
+      val expectedResponseBody3 = """{"hello":"world-3"}"""
+
+      val helloWorldScenario = Scenario("hello, world")
+
+      ((on(urlEqualTo("/hello")) get) in (helloWorldScenario settingStateTo "once")) respond (aResponse withBody expectedResponseBody1)
+      ((on(urlEqualTo("/hello")) get) in (helloWorldScenario whenStateIs "once" settingStateTo "twiceOrMore")) respond (aResponse withBody expectedResponseBody2)
+      ((on(urlEqualTo("/hello")) get) in (helloWorldScenario whenStateIs "twiceOrMore")) respond (aResponse withBody expectedResponseBody3)
+
+      Http("http://localhost:" + port + "/hello").method("get").asString.body shouldBe expectedResponseBody1
+      Http("http://localhost:" + port + "/hello").method("get").asString.body shouldBe expectedResponseBody2
+      Http("http://localhost:" + port + "/hello").method("get").asString.body shouldBe expectedResponseBody3
+      Http("http://localhost:" + port + "/hello").method("get").asString.body shouldBe expectedResponseBody3
+      Http("http://localhost:" + port + "/hello").method("get").asString.body shouldBe expectedResponseBody3
     }
   }
 
@@ -99,7 +118,7 @@ class MockFeatures
         .post
         .withBody(equalToJson("""{"hi":"you"}"""))
         .withContentType("application/json")
-        .returning(
+        .respond(
           aResponse
             .withBody(expectedResponseBody)
             .withStatus(201)
@@ -123,7 +142,7 @@ class MockFeatures
         .put
         .withBody(equalToJson("""{"hi":"you"}"""))
         .withContentType("application/json")
-        .returning(
+        .respond(
           aResponse
             .withBody(expectedResponseBody)
             .withStatus(201)
@@ -145,7 +164,7 @@ class MockFeatures
 
       on(urlEqualTo("/hello"))
         .delete
-        .returning(aResponse.withBody(expectedResponseBody))
+        .respond(aResponse.withBody(expectedResponseBody))
 
       val response =
         Http("http://localhost:" + port + "/hello")
@@ -164,7 +183,7 @@ class MockFeatures
       on(urlEqualTo("/hello"))
         .patch
         .withBody(equalToJson("""{"hi":"you"}"""))
-        .returning(aResponse.withBody(expectedResponseBody))
+        .respond(aResponse.withBody(expectedResponseBody))
 
       val response = Http("http://localhost:" + port + "/hello")
         .header("Content-Type", "application/json")
