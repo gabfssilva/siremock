@@ -6,6 +6,8 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import org.scalatest.{BeforeAndAfter, FeatureSpec, Matchers}
 import scalaj.http.{Http, StringBodyConnectFunc}
 
+import scala.concurrent.duration._
+
 import scala.language.postfixOps
 
 class MockFeatures
@@ -131,6 +133,38 @@ class MockFeatures
 
       response.body shouldBe expectedResponseBody
       response.code shouldBe 201
+    }
+
+    scenario("complex request") {
+      val expectedResponseBody = """{"hello":"world!"}"""
+
+      (((on(urlEqualTo("/hello")) post)
+        withAuth BasicAuth("test", "test")
+        withContentType "application/json"
+        withBody equalToJson("""{ "hello": "world!" }""")
+        withHeaders ("X-My-Header" -> equalTo("MyHeaderValue"), "X-My-Other-Header" -> equalTo("MyHeaderValue2")))
+        respond (
+          aResponse
+            withContentType "application/json"
+            withStatus 201
+            withBody expectedResponseBody
+            withHeaders("X-My-Header-Response" -> "MyHeaderValueResponse")
+            withDelay(500 millis)
+          )
+        )
+
+      val resp =
+        Http("http://localhost:" + port + "/hello")
+          .header("X-My-Header", "MyHeaderValue")
+          .header("X-My-Other-Header", "MyHeaderValue2")
+          .header("Content-Type", "application/json")
+          .auth("test", "test")
+          .postData("""{ "hello": "world!" }""").asString
+
+      resp.code shouldBe 201
+      resp.body shouldBe expectedResponseBody
+      resp.contentType shouldBe Some("application/json")
+      resp.header("X-My-Header-Response") shouldBe Some("MyHeaderValueResponse")
     }
   }
 
