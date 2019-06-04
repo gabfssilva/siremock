@@ -70,6 +70,8 @@ trait WireMockSupport
   }
 }
 
+trait SireMockClient extends WireMockSupport
+
 trait SireMockServer extends WireMockSupport {
   val wireMockServer: WireMockServer
 

@@ -13,7 +13,7 @@ If you want to start with SireMock, first you need to add the dependency:
 
 resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/maven"
 
-libraryDependencies += "io.github.gabfssilva" %% "siremock" % "1.0.0" % "test"
+libraryDependencies += "io.github.gabfssilva" %% "siremock" % "1.0.1" % "test"
 ```
 
 Also, you need to instantiate WireMock to start with SireMock.
