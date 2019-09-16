@@ -1,5 +1,7 @@
 # SireMock
 
+[![Download](https://api.bintray.com/packages/gabfssilva/maven/siremock/images/download.svg) ](https://bintray.com/gabfssilva/maven/siremock/_latestVersion)
+
 SireMock is a Scala wrapper for WireMock, which is a HTTP simulator that runs on the JVM.
 The main idea of SireMock is to provide a more friendly api for Scala.
 
@@ -9,11 +11,11 @@ The main idea of SireMock is to provide a more friendly api for Scala.
 If you want to start with SireMock, first you need to add the dependency:
 
 ```scala
-//only for Scala 2.12
+//works for both Scala 2.12 and 2.13
 
 resolvers += "gabfssilva releases" at "http://dl.bintray.com/gabfssilva/maven"
 
-libraryDependencies += "io.github.gabfssilva" %% "siremock" % "1.0.1" % "test"
+libraryDependencies += "io.github.gabfssilva" %% "siremock" % "1.0.2" % "test"
 ```
 
 Also, you need to instantiate WireMock to start with SireMock.
